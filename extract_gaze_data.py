@@ -4,12 +4,12 @@ from pathlib import Path
 import scipy.io
 import os
 
-for s in range(1,33): #loop through subjects from 301 to 303
+for s in range(37,38): #loop through subjects from 301 to 303
     print(s)
     id_part=str(s).zfill(3);
 
     path_data_main='Y:/DATA/sourcedata'
-    save_path ='Y:/DATA/derivatives/eyetracking/'
+    save_path ='Y:/TOOLS/runEYETRACKING/analyse_eyetracking/Analysis_of_eye_tracking/data/'
 
     path=path_data_main+'/'
     print(path)
@@ -23,10 +23,10 @@ for s in range(1,33): #loop through subjects from 301 to 303
         filename=f'{path_data_main}/sub-{id_part}/sub-{id_part}_task_socPEIRS_eyetracking.pkl'
         print(filename)
 
-        datafile=f'\\gazedata_sub-{id_part}.mat'
-        stampsfile=f'\\stamptime_sub-{id_part}.csv'
-        headerfile=f'\\header_sub-{id_part}.csv'
-        datafile2=f'\\gazedata_sub-{id_part}.csv'
+        datafile=f'//gazedata_sub-{id_part}.mat'
+        stampsfile=f'/stamptime_sub-{id_part}.csv'
+        headerfile=f'/header_sub-{id_part}.csv'
+        datafile2=f'/gazedata_sub-{id_part}.csv'
 
         header = ['device_time_stamp',
                  'system_time_stamp',
@@ -67,7 +67,7 @@ for s in range(1,33): #loop through subjects from 301 to 303
 
         df = pd.DataFrame(gaze_data_container, columns=header)
 
-        scipy.io.savemat(save_path+datafile,mdict={'gaze_data_container': gaze_data_container})
+        #scipy.io.savemat(save_path+datafile,mdict={'gaze_data_container': gaze_data_container})
 
         df = pd.DataFrame(msg_container)
         df.to_csv(save_path+stampsfile,header=None,index=False)
@@ -75,7 +75,8 @@ for s in range(1,33): #loop through subjects from 301 to 303
         df = pd.DataFrame(gaze_data_container)
         df.to_csv(save_path+datafile2,header=None,index=False)
 
-        headers = pd.DataFrame(header)
-        headers.to_csv(save_path+headerfile, header=None,index=False)
     else:
         continue;
+        
+headers = pd.DataFrame(header)
+headers.to_csv(save_path+headerfile, header=None,index=False)
