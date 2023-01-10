@@ -50,13 +50,13 @@ DF_stamps = list()
 # Define the paths 
 path_data_main='Y:/DATA/sourcedata'
 path=path_data_main+'/'
-save_path ='Y:/ANALYSIS/eyetracking/'
+save_path ='Y:/TOOLS/runEYETRACKING/analyse_eyetracking/Analysis_of_eye_tracking/data/'
 if not os.path.exists(f'{save_path}/'):
     os.mkdir(f'{save_path}/')
 # Read the headers 
-timestamp_file = open('Y:/DATA/derivatives/eyetracking/header_sub-003.csv')
+timestamp_file = open(f'{save_path}/header_sub-032.csv')
 time_reader = csv.reader(timestamp_file)
-headers = pd.read_csv('Y:/DATA/derivatives/eyetracking/header_sub-003.csv',header=None)
+headers = pd.read_csv(f'{save_path}/header_sub-032.csv',header=None)
 
 full_behav_data = pd.read_csv('Y:/DATA/derivatives/behav/full_data.csv')
 
@@ -176,9 +176,36 @@ for s in range(3,38): #loop through subjects
         first_look = first_look.assign(yR_zscore = zscore(first_look.right_gaze_point_in_user_coordinate_system_y))
         first_look = first_look.query('yL_zscore < 2.56 & yR_zscore < 2.56')
 
-        first_look.to_csv(f'{save_path}/{id_part}_eyegaze_within_stim.csv')
+        first_look.to_csv(f'{save_path}/{id_part}_FirstGaze_stimOn.csv')
 
-        # Plot 
+        
+        # Get average gaze between stim-on and choice
+        within_stim = eye_data;
+        # Remove outliers from data between stimulus onset and selection 
+        within_stim = within_stim.assign(xL_zscore = zscore(within_stim.left_gaze_point_in_user_coordinate_system_x))
+        within_stim = within_stim.assign(xR_zscore = zscore(within_stim.right_gaze_point_in_user_coordinate_system_x))
+        within_stim = within_stim.query('xL_zscore < 2.56 & xR_zscore < 2.56')
+        
+        within_stim = within_stim.assign(yL_zscore = zscore(within_stim.left_gaze_point_in_user_coordinate_system_y))
+        within_stim = within_stim.assign(yR_zscore = zscore(within_stim.right_gaze_point_in_user_coordinate_system_y))
+        within_stim = within_stim.query('yL_zscore < 2.56 & yR_zscore < 2.56')
+        
+        within_stim_means = within_stim.groupby(['trial_id','trigger_n'])['left_gaze_point_in_user_coordinate_system_x',
+                                                            'right_gaze_point_in_user_coordinate_system_x'].mean()
+
+        gaze_for_each_stim = within_stim.groupby(['trigger_n'])['xL_zscore',
+                                                            'xR_zscore',
+                                                            'yL_zscore',
+                                                            'yR_zscore'].mean()
+        
+        
+        
+        within_stim.to_csv(f'{save_path}/{id_part}_gaze_within_stim.csv')
+
+        
+
+
+        # # Plot 
         # xdata = stim_gaze['left_gaze_point_in_user_coordinate_system_x']
         # ydata = stim_gaze['right_gaze_point_in_user_coordinate_system_x']
         # xdata_z = stim_gaze['xL_zscore']
@@ -220,43 +247,43 @@ for s in range(3,38): #loop through subjects
         
         
         
-        # Check the stimulus looked at during feedback, it should be the one chosen 
-        feed_gaze = df.loc[df['trigger_n'] == 3]
-        i = feed_gaze.trigger_indx    
-        feed_gaze = feed_gaze.assign(trial_id = i.ne(i.shift()).cumsum())   # give it trial_id column
-        feed_next = feed_gaze.shift(-1)
-        feed_onset = feed_next.loc[feed_gaze.triggers == '3_onset'] 
-        choice_d = curr_behav_data.loc[:,('trial_id', 'response')]
-        choices_and_gaze = pd.merge(feed_onset, choice_d, on = 'trial_id')
-        choices_and_gaze = choices_and_gaze.dropna(subset=['left_pupil_diameter'])
+        # # Check the stimulus looked at during feedback, it should be the one chosen 
+        # feed_gaze = df.loc[df['trigger_n'] == 3]
+        # i = feed_gaze.trigger_indx    
+        # feed_gaze = feed_gaze.assign(trial_id = i.ne(i.shift()).cumsum())   # give it trial_id column
+        # feed_next = feed_gaze.shift(-1)
+        # feed_onset = feed_next.loc[feed_gaze.triggers == '3_onset'] 
+        # choice_d = curr_behav_data.loc[:,('trial_id', 'response')]
+        # choices_and_gaze = pd.merge(feed_onset, choice_d, on = 'trial_id')
+        # choices_and_gaze = choices_and_gaze.dropna(subset=['left_pupil_diameter'])
         
-        choices_and_gaze = choices_and_gaze.assign(xL_zscore = zscore(choices_and_gaze.left_gaze_point_in_user_coordinate_system_x))
-        choices_and_gaze = choices_and_gaze.assign(xR_zscore = zscore(choices_and_gaze.right_gaze_point_in_user_coordinate_system_x))
-        choices_and_gaze = choices_and_gaze.query('xL_zscore < 2.56 & xR_zscore < 2.56')
-        choices_and_gaze = choices_and_gaze.query('xL_zscore > -2.56 & xR_zscore > -2.56')
+        # choices_and_gaze = choices_and_gaze.assign(xL_zscore = zscore(choices_and_gaze.left_gaze_point_in_user_coordinate_system_x))
+        # choices_and_gaze = choices_and_gaze.assign(xR_zscore = zscore(choices_and_gaze.right_gaze_point_in_user_coordinate_system_x))
+        # choices_and_gaze = choices_and_gaze.query('xL_zscore < 2.56 & xR_zscore < 2.56')
+        # choices_and_gaze = choices_and_gaze.query('xL_zscore > -2.56 & xR_zscore > -2.56')
         
-        choices_and_gaze = choices_and_gaze.assign(yL_zscore = zscore(choices_and_gaze.left_gaze_point_in_user_coordinate_system_y))
-        choices_and_gaze = choices_and_gaze.assign(yR_zscore = zscore(choices_and_gaze.right_gaze_point_in_user_coordinate_system_y))
-        choices_and_gaze = choices_and_gaze.query('yL_zscore < 2.56 & yR_zscore < 2.56')
-        choices_and_gaze = choices_and_gaze.query('yL_zscore > -2.56 & yR_zscore > -2.56')
+        # choices_and_gaze = choices_and_gaze.assign(yL_zscore = zscore(choices_and_gaze.left_gaze_point_in_user_coordinate_system_y))
+        # choices_and_gaze = choices_and_gaze.assign(yR_zscore = zscore(choices_and_gaze.right_gaze_point_in_user_coordinate_system_y))
+        # choices_and_gaze = choices_and_gaze.query('yL_zscore < 2.56 & yR_zscore < 2.56')
+        # choices_and_gaze = choices_and_gaze.query('yL_zscore > -2.56 & yR_zscore > -2.56')
 
-        choices_and_gaze_left = choices_and_gaze.loc[choices_and_gaze['response'] == 0] 
+        # choices_and_gaze_left = choices_and_gaze.loc[choices_and_gaze['response'] == 0] 
 
-        # Scatterplots of data 
-        x = choices_and_gaze_left.xL_zscore
-        y = choices_and_gaze_left.yL_zscore
-        plt.scatter(x, y,c='green')
-        choices_and_gaze_right = choices_and_gaze.loc[choices_and_gaze.response == 1] 
-        x2 = choices_and_gaze_right.xL_zscore
-        y2 = choices_and_gaze_right.yL_zscore
-        plt.scatter(x2, y2,c='red')
-        plt.savefig(f'{save_path}/{id_part}_looked_left_and_right_at_feedback.png')
-        plt.cla()
-        bins = np.linspace(-3, 3, 30)
-        plt.hist(x,bins)
-        plt.hist(x2, bins)
-        plt.savefig(f'{save_path}/{id_part}_eyegaze_checks_at_feedback.png')
-        plt.cla()
+        # # Scatterplots of data 
+        # x = choices_and_gaze_left.xL_zscore
+        # y = choices_and_gaze_left.yL_zscore
+        # plt.scatter(x, y,c='green')
+        # choices_and_gaze_right = choices_and_gaze.loc[choices_and_gaze.response == 1] 
+        # x2 = choices_and_gaze_right.xL_zscore
+        # y2 = choices_and_gaze_right.yL_zscore
+        # plt.scatter(x2, y2,c='red')
+        # plt.savefig(f'{save_path}/{id_part}_looked_left_and_right_at_feedback.png')
+        # plt.cla()
+        # bins = np.linspace(-3, 3, 30)
+        # plt.hist(x,bins)
+        # plt.hist(x2, bins)
+        # plt.savefig(f'{save_path}/{id_part}_eyegaze_checks_at_feedback.png')
+        # plt.cla()
      
     else:
         continue;
