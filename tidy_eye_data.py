@@ -58,10 +58,10 @@ timestamp_file = open(f'{save_path}/header_sub-032.csv')
 time_reader = csv.reader(timestamp_file)
 headers = pd.read_csv(f'{save_path}/header_sub-032.csv',header=None)
 
-full_behav_data = pd.read_csv('Y:/DATA/derivatives/behav/full_data.csv')
+full_behav_data = pd.read_csv('Y:/DATA/derivatives/behav/full_data_n33.csv')
 
 path_list = [];
-for s in range(3,38): #loop through subjects
+for s in 3: #loop through subjects
     # add zeros to start of each number to get participant IDs
     id_part=str(s).zfill(3);
     print(f'loading subject {id_part}')
@@ -135,6 +135,12 @@ for s in range(3,38): #loop through subjects
         # some participants have stim trigger 84 (check word document in project folder about triggers)
         stim_gaze = stim_gaze.loc[stim_gaze['trigger_n'] >= 10]
         
+        
+        
+        # Chose gaze right after selection was made but no feedback
+        stim_gaze = eye_data.loc[eye_data['trigger_n'] == 2] 
+
+        
         # Index trial_id 540 in total 
         i = stim_gaze.trigger_indx    
         stim_gaze['trial_id'] = i.ne(i.shift()).cumsum()
@@ -155,7 +161,7 @@ for s in range(3,38): #loop through subjects
         present_data = pd.DataFrame();
         present_data['trial_id'] = pd.DataFrame(stim_gaze.trial_id.unique())
         present_data.participant = f'sub-{id_part}'
-        present_data.to_csv(f'{save_path}/{id_part}_trials_with_present_gazedata_while_stimulus_on.csv')
+ #      present_data.to_csv(f'{save_path}/{id_part}_trials_with_present_gazedata_while_stimulus_on.csv')
 
         
         # Definind the onset of a trial, fill the rows of gaze data with the id of this trial
@@ -165,8 +171,8 @@ for s in range(3,38): #loop through subjects
         # Find only the first gaze when stimulus pair appears
         eye_data['change_indx'] = eye_data.trigger_indx.diff()
         first_look = eye_data[eye_data.trigger_indx.shift() != eye_data.trigger_indx]
+        
 
-    
         # Remove outlier gazes 
         first_look = first_look.assign(xL_zscore = zscore(first_look.left_gaze_point_in_user_coordinate_system_x))
         first_look = first_look.assign(xR_zscore = zscore(first_look.right_gaze_point_in_user_coordinate_system_x))
@@ -176,7 +182,7 @@ for s in range(3,38): #loop through subjects
         first_look = first_look.assign(yR_zscore = zscore(first_look.right_gaze_point_in_user_coordinate_system_y))
         first_look = first_look.query('yL_zscore < 2.56 & yR_zscore < 2.56')
 
-        first_look.to_csv(f'{save_path}/{id_part}_FirstGaze_stimOn.csv')
+  #      first_look.to_csv(f'{save_path}/{id_part}_FirstGaze_stimOn.csv')
 
         
         # Get average gaze between stim-on and choice
@@ -200,32 +206,32 @@ for s in range(3,38): #loop through subjects
         
         
         
-        within_stim.to_csv(f'{save_path}/{id_part}_gaze_within_stim.csv')
+        within_stim.to_csv(f'{save_path}/{id_part}_selection_gaze.csv')
 
         
 
 
         # # Plot 
-        # xdata = stim_gaze['left_gaze_point_in_user_coordinate_system_x']
-        # ydata = stim_gaze['right_gaze_point_in_user_coordinate_system_x']
-        # xdata_z = stim_gaze['xL_zscore']
-        # ydata_z = stim_gaze['xR_zscore']
+        xdata = within_stim['left_gaze_point_in_user_coordinate_system_x']
+        ydata = within_stim['right_gaze_point_in_user_coordinate_system_x']
+        xdata_z = within_stim['xL_zscore']
+        ydata_z = within_stim['xR_zscore']
     
-        # bins = np.linspace(-10, 10, 100)
+        bins = np.linspace(-10, 10, 100)
         
-        # plt.hist(xdata, bins, alpha=0.5, label='L_gaze')
-        # plt.hist(ydata, bins, alpha=0.5, label='R_gaze')
-        # plt.legend(loc='upper right')
-        # plt.title('left and right eyes')
-        # plt.savefig(f'{save_path}/sub-{id_part}/{id_part}_looked_left_and_right.png')
-        # plt.close()
+        plt.hist(xdata, bins, alpha=0.5, label='L_gaze')
+        plt.hist(ydata, bins, alpha=0.5, label='R_gaze')
+        plt.legend(loc='upper right')
+        plt.title('left and right eyes')
+        plt.savefig(f'{save_path}/{id_part}_looked_left_and_right.png')
+        plt.close()
         
-        # plt.hist(xdata_z, bins, alpha=0.5, label='L_zscored')
-        # plt.hist(ydata_z, bins, alpha=0.5, label='R_zscored')
-        # plt.legend(loc='upper right')
-        # plt.title('Z scored left and right eyes')
-        # plt.savefig(f'{save_path}/sub-{id_part}/{id_part}_eyegaze_checks.png')
-        # plt.close()
+        plt.hist(xdata_z, bins, alpha=0.5, label='L_zscored')
+        plt.hist(ydata_z, bins, alpha=0.5, label='R_zscored')
+        plt.legend(loc='upper right')
+        plt.title('Z scored left and right eyes')
+        plt.savefig(f'{save_path}/{id_part}_eyegaze_checks.png')
+        plt.close()
         
         
         # stim_gaze_41 = stim_gaze.loc[stim_gaze['trigger_n'] == 41] 

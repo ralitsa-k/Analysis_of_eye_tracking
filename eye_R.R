@@ -6,6 +6,13 @@ detach(package:plyr)
 color1 = "#4d9699"
 color2 = '#ff0659'
 color3 = '#5f6c11'
+
+my_theme =   theme(panel.spacing = unit(2, "lines"),
+                   text = element_text(size=15),
+                   axis.title.x = element_text(size = 15, hjust=0.5, vjust=-1),
+                   axis.title.y = element_text(size = 15, hjust=0.5, vjust =1.5),
+                   axis.text.x = element_text(size = 13),
+                   axis.text.y = element_text(size = 13))
 # Average looking times within a trial (while the stimulus is on)
 # Looked more at more preferred stimulus?  ------
 
@@ -54,8 +61,7 @@ ggplot(data = big_data_gaze) +
 
 big_gaze_data1 %>%
   ggplot(aes(x = xR_zscore)) +
-  geom_density() +
-  facet_wrap(~id)
+  geom_density()
 
 names(big_data1)
 
@@ -73,7 +79,7 @@ stim_eye_pref <- big_gaze_data1 %>%
 
 # Load behavioural data 
 
-behav_data <- read_csv('Y:/TOOLS/runEYETRACKING/analyse_eyetracking/behav_data_combined.csv') %>%
+behav_data <- read_csv('Y:/TOOLS/runEYETRACKING/analyse_eyetracking/Analysis_of_eye_tracking/behav_data_combined.csv') %>%
   mutate(first_observer = ifelse(group_1 == perceptual_result, 'in-group','out-group'),
          second_observer = ifelse(first_observer == 'in-group', 'out-group', 'in-group'),
          block_soc = ifelse(block == 2, first_observer,
@@ -136,7 +142,7 @@ eye_pref_cleaned <- behav_and_eye %>%
                 trial_n, trigger_integer, eye_choice,participant, left_rew_dbl, right_rew_dbl)
 
 
-# Plot eye Correct --------
+# Plot eye Correct
 perc_correct <- eye_pref_cleaned %>%
   group_by(ID) %>% count(correct) %>% filter(correct != 'NA') %>%
   mutate(sum_all = sum(n)) %>%  filter(correct == 1) %>%
@@ -155,16 +161,204 @@ perc_correct %>%
 
 write.csv(perc_correct, 'perc_correct_eyegaze.csv')
 
-data_2b <- eye_pref_cleaned
+data_2b <- eye_pref_cleaned 
+write.csv(eye_pref_cleaned, 'eye_pref_cleaned.csv')
 
-sjs = length(unique(eye_pref_cleaned$ID))
 
-data_2b %>% 
+
+
+
+
+
+
+ # Plot and prep eye data  -------------------
+data_2b <- read_csv('eye_pref_cleaned.csv')
+
+# Get bins data and plot 
+sjs = length(unique(data_2b$ID))
+
+data_2b %>%
   filter(block_soc == 'out-group') %>%
-  mutate(bins = rep(1:5,each =  36, times = length(sjs))) %>%
+  group_by(ID) %>%
+  count()
+
+dd <- data_2b %>% 
+  select(ID) %>%
+  distinct 
+
+data_tofill = tibble(ID = rep(c(dd$ID), each = 180), 
+                     trial_n = rep(1:180,times = sjs))
+
+outgr <- data_2b %>%
+  filter(block_soc == 'out-group') %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_n) %>%
+  mutate(bins = rep(1:5,each =  36, times = nrow(dd))) %>%
   filter(typeOfChoice %in% c(1,6)) %>%
-  group_by(pair_type, bins,participant) %>%
-  mutate(c_bins = n())
+  group_by(bins) %>%
+  mutate(c_bins = n()) %>%
+  group_by(bins,pair_type) %>%
+  mutate(perc_risky = mean(risky, na.rm = TRUE)) %>%
+  mutate(se = sd(risky, na.rm = TRUE)/sqrt(c_bins)) %>%
+  mutate(semin = perc_risky - se, semax = perc_risky + se) 
+
+outgr %>%
+  ggplot(aes(x = factor(bins), y = perc_risky,color = pair_type)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin=semin, ymax=semax), 
+                width=0.2, lty=1, size=0.5) +
+  geom_abline(intercept = 0.5, slope = 0, size = 1) +
+  scale_colour_manual(values = c('cadetblue2', 'darkolivegreen3', 'darkorange')) +
+  geom_line(aes(group = pair_type), size = 2) +
+  labs(x = 'Binned trials', y = 'Perc risky choices', color = 'EV combo type') +
+  my_theme 
+
+
+ingr <- data_2b %>%
+  filter(block_soc == 'in-group') %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_n) %>%
+  mutate(bins = rep(1:5,each =  36, times = nrow(dd))) %>%
+  filter(typeOfChoice %in% c(1,6)) %>%
+  group_by(bins) %>%
+  mutate(c_bins = n()) %>%
+  group_by(bins,pair_type) %>%
+  mutate(perc_risky = mean(risky, na.rm = TRUE)) %>%
+  mutate(se = sd(risky, na.rm = TRUE)/sqrt(c_bins)) %>%
+  mutate(semin = perc_risky - se, semax = perc_risky + se) 
+
+ingr %>%
+  ggplot(aes(x = factor(bins), y = perc_risky,color = pair_type)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin=semin, ymax=semax), 
+                width=0.2, lty=1, size=0.5) +
+  geom_abline(intercept = 0.5, slope = 0, size = 1) +
+  scale_colour_manual(values = c('cadetblue2', 'darkolivegreen3', 'darkorange')) +
+  geom_line(aes(group = pair_type), size = 2) +
+  labs(x = 'Binned trials', y = 'Perc risky choices', color = 'EV combo type') +
+  my_theme 
 
 
 
+basl <- data_2b %>%
+  filter(block_soc == 'baseline') %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_n) %>%
+  mutate(bins = rep(1:5,each =  36, times = nrow(dd))) %>%
+  filter(typeOfChoice %in% c(1,6)) %>%
+  group_by(bins) %>%
+  mutate(c_bins = n()) %>%
+  group_by(bins,pair_type) %>%
+  mutate(perc_risky = mean(risky, na.rm = TRUE)) %>%
+  mutate(se = sd(risky, na.rm = TRUE)/sqrt(c_bins)) %>%
+  mutate(semin = perc_risky - se, semax = perc_risky + se) 
+
+basl %>%
+  ggplot(aes(x = factor(bins), y = perc_risky,color = pair_type)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin=semin, ymax=semax), 
+                width=0.2, lty=1, size=0.5) +
+  geom_abline(intercept = 0.5, slope = 0, size = 1) +
+  scale_colour_manual(values = c('cadetblue2', 'darkolivegreen3', 'darkorange')) +
+  geom_line(aes(group = pair_type), size = 2) +
+  labs(x = 'Binned trials', y = 'Perc risky choices', color = 'EV combo type') +
+  my_theme 
+
+
+
+# Ful experiment learning curve - better at selection, not here -----------
+
+data_tofill = tibble(ID = rep(c(dd$ID), each = 540), 
+                     trial_id = rep(1:540,times = sjs))
+outgr <- data_2b %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_n) %>%
+  mutate(bins = rep(rep(1:5,each =  36 ,time = 3), times = nrow(dd))) %>%
+  filter(typeOfChoice %in% c(1,6)) %>%
+  group_by(bins) %>%
+  mutate(c_bins = n()) %>%
+  group_by(bins,pair_type) %>%
+  mutate(perc_risky = mean(risky, na.rm = TRUE)) %>%
+  mutate(se = sd(risky, na.rm = TRUE)/sqrt(c_bins)) %>%
+  mutate(semin = perc_risky - se, semax = perc_risky + se) 
+
+outgr %>%
+  ggplot(aes(x = factor(bins), y = perc_risky,color = pair_type)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin=semin, ymax=semax), 
+                width=0.2, lty=1, size=0.5) +
+  geom_abline(intercept = 0.5, slope = 0, size = 1) +
+  scale_colour_manual(values = c('cadetblue2', 'darkolivegreen3', 'darkorange')) +
+  geom_line(aes(group = pair_type), size = 2) +
+  labs(x = 'Binned trials', y = 'Perc risky choices', color = 'EV combo type') +
+  my_theme 
+
+
+
+full_ex = data_2b %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_n) %>%
+  mutate(bins = rep(rep(1:3,each =  180), times = nrow(dd))) %>%
+  filter(typeOfChoice %in% c(1,6)) %>%
+  group_by(bins) %>%
+  mutate(c_bins = n()) %>%
+  group_by(bins,pair_type) %>%
+  mutate(perc_risky = mean(risky, na.rm = TRUE)) %>%
+  mutate(se = sd(risky, na.rm = TRUE)/sqrt(c_bins)) %>%
+  mutate(semin = perc_risky - se, semax = perc_risky + se) 
+  
+
+
+
+# one point 
+risk_probs_by_block = data_2b %>% group_by(pair_type, ID,participant, block_soc) %>%
+  summarise(risk_chosen = mean(risky, na.rm = TRUE)) %>%
+  filter(pair_type != 'different') %>%
+  pivot_wider(names_from=pair_type, values_from = risk_chosen) %>%
+  mutate(diff = both_high - both_low) 
+
+risk_probs_by_block %>%
+  ungroup() %>%
+  group_by(block_soc) %>%
+  mutate(grand_mean = mean(diff)) %>%
+  ggplot(aes(x = block_soc, y = diff, color = block_soc, group = ID)) +
+  geom_line()+
+  geom_point(aes(y = grand_mean), size = 7) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 0) +
+  labs(x = 'Social cond', y = 'P(risky|both-high) - P(risky|both-low)', color = 'Social cond') +
+  my_theme   
+
+
+# Eye data for model 
+
+data_tofill = tibble(ID = rep(c(dd$ID), each = 540), 
+                     trial_id = rep(1:540,times = sjs))
+eye_for_model <- data_2b %>%
+  full_join(data_tofill) %>%
+  arrange(ID, trial_id) %>%
+  fill_(names(data_2b)) %>%
+  select(-trial, -trial_cont, -trial_id) %>%
+  mutate(ID = as.numeric(as.factor((ID)))) %>%
+  mutate(block = rep(1:3, each = 180,31),
+         trial_cont = trial_n,
+         trial = trial_n,
+         trial_id = rep(1:540,times = sjs)) %>%
+  select(ID, block, block_soc, typeOfChoice,stim1, stim2, stim_chosen, trial_cont, trial, reward)
+
+eye_for_model %>%
+  group_by(ID, block_soc) %>%
+  count()
+
+
+write.csv(eye_for_model, 'Y:/DATA/derivatives/behav/full_data.csv')
+
+
+
+
+getAllTuesdaysAndWednesdays <- function(year) {
+  days <- as.POSIXlt(paste(year, 1:100, sep="-"), format="%Y-%j")
+  Ms <- days[days$wday==1|days$wday==2]
+  Ms[!is.na(Ms)]  # Needed to remove NA from day 366 in non-leap years
+}
+getAllTuesdaysAndWednesdays(2023)

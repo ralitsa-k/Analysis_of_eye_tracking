@@ -1,7 +1,6 @@
 import pickle
 import pandas as pd
 from pathlib import Path
-import scipy.io
 import os
 
 for s in range(37,38): #loop through subjects from 301 to 303
